@@ -21,6 +21,7 @@ impl Display {
         let window = video_subsystem
             .window("Chip-8", DISPLAY_WIDTH * scale, DISPLAY_HEIGHT * scale)
             .position_centered()
+            .opengl()
             .build()
             .unwrap();
         let canvas = window.into_canvas().build().unwrap();
@@ -41,16 +42,18 @@ impl Display {
         self.canvas.clear();
 
         self.canvas.set_draw_color(self.foreground_color);
-        for (r, row) in buffer.iter().enumerate() {
-            for (c, col) in row.iter().enumerate() {
-                if *col {
-                    let r = ((r as u32) * self.scale) as i32;
-                    let c = ((c as u32) * self.scale) as i32;
-                    let width = self.scale;
-                    let height = self.scale;
-                    self.canvas
-                        .fill_rect(Rect::new(r, c, width, height))
-                        .expect("Failed to draw pixel");
+        // Draw each pixel
+        for y in 0..DISPLAY_HEIGHT {
+            for x in 0..DISPLAY_WIDTH {
+                if buffer[y as usize][x as usize] {
+                    // Draw a scaled rectangle for each pixel
+                    let rect = Rect::new(
+                        (x * self.scale) as i32,
+                        (y * self.scale) as i32,
+                        self.scale,
+                        self.scale,
+                    );
+                    self.canvas.fill_rect(rect).unwrap();
                 }
             }
         }
