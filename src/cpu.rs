@@ -32,7 +32,7 @@ const RUN_FREQUENCY: u64 = 700; // 700 Chip-8 instructions per second
 const RUN_INTERVAL: Duration = Duration::from_secs(1 / RUN_FREQUENCY); // should run 700 instructions per second
 pub struct Chip8 {
     memory: [u8; MEMORY_SIZE],                        // 4 KB of memory
-    display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT], // 64x32 monochrome display
+    pub display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT], // 64x32 monochrome display
     program_counter: u16,                             // Program counter (PC), 12-bit addressable
     index_register: u16,                              // index register (I), 12-bit addressable
     stack: [u16; STACK_SIZE],                         // Stack for 16-bit addresses
@@ -43,9 +43,9 @@ pub struct Chip8 {
     last_instruction_execution: Instant,              // parameter to control instruction execution
 }
 
-impl Chip8 {
-    pub fn new() -> Self {
-        let mut chip8 = Self {
+impl Default for Chip8 {
+    fn default() -> Self {
+        Self {
             memory: [0; MEMORY_SIZE],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT], // screen starts black
             program_counter: 0x200, // offset to the default start address (200 in hex)
@@ -56,7 +56,13 @@ impl Chip8 {
             registers: [0; NUM_REGISTERS],
             last_timer_update: Instant::now(), // set counter to instance CPU is created
             last_instruction_execution: Instant::now(),
-        };
+        }
+    }
+}
+
+impl Chip8 {
+    pub fn new() -> Self {
+        let mut chip8 = Self::default();
 
         // Load font data into memory at 0x050
         chip8.memory[FONT_START..FONT_START + FONT_SIZE].copy_from_slice(&FONTS);

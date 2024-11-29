@@ -35,7 +35,7 @@ impl Display {
 
     pub fn draw(
         self: &mut Display,
-        buffer: &[[bool; DISPLAY_HEIGHT as usize]; DISPLAY_WIDTH as usize],
+        buffer: &[[bool; DISPLAY_WIDTH as usize]; DISPLAY_HEIGHT as usize],
     ) {
         self.canvas.set_draw_color(self.background_color);
         self.canvas.clear();
