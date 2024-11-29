@@ -5,4 +5,4 @@ edition = "2021"
 
 
 [dependencies]
-sdl3 = "0.11.6"
+sdl2 = "0.37.0"
