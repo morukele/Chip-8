@@ -1,3 +1,5 @@
+use chip_8::cpu::Chip8;
+
 fn main() {
-    println!("Hello, world!");
+    let chip8 = Chip8::new();
 }
