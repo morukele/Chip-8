@@ -1,4 +1,4 @@
-use chip_8::{Chip8, Display};
+use chip_8::{initialize_audio, Chip8, Display};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::path::Path;
@@ -11,11 +11,14 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let mut display = Display::new(&sdl_context, 10);
 
-    let path = Path::new("./rom/test_opcode.ch8");
+    let path = Path::new("./rom/TETRIS");
     let rom = std::fs::read(path).expect("Unable to read file");
 
     let mut chip8 = Chip8::new(false); // create new instance of Chip-8
     chip8.load_rom(rom); // load rom
+
+    let (audio_device, is_playing) = initialize_audio(); // initialize audio with SDL2
+
     let mut start = Instant::now(); // set up timer to ensure run of 700 instruction per second
 
     // main loop
@@ -54,7 +57,8 @@ fn main() {
             // check if elapsed time is greater than run interval
             chip8.cycle(); // chip 8 cycle here
             display.draw(&chip8.display); // render the CHIP-8 display
-            chip8.decrement_timers(); // update timers
+            chip8.update_sound(&audio_device, &is_playing);
+            chip8.update_timers(); // update timers
             start = Instant::now(); // update the run timer to now
         }
     }

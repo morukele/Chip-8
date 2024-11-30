@@ -1,4 +1,7 @@
+use crate::SquareWave;
 use rand::Rng;
+use sdl2::audio::AudioDevice;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const MEMORY_SIZE: usize = 4096; // 4 KB of memory
@@ -92,7 +95,7 @@ impl Chip8 {
     /// A function to decrement the times.
     /// If the values of the timer is above zero,
     /// it should be decremented by one 60 times per second
-    pub fn decrement_timers(&mut self) {
+    pub fn update_timers(&mut self) {
         let elapsed_time = self.last_timer_update.elapsed();
 
         // check if enough time has passed to decrement timer (60Hz)
@@ -107,6 +110,29 @@ impl Chip8 {
 
             // update the mast timer update time to now
             self.last_timer_update = Instant::now(); // there is a trivial delay here
+        }
+    }
+
+    pub fn update_sound(
+        &mut self,
+        audio_device: &AudioDevice<SquareWave>,
+        is_playing: &Arc<Mutex<bool>>,
+    ) {
+        if self.sound_timer > 0 {
+            // Start playing sound if not already playing
+            let mut playing = is_playing.lock().unwrap();
+            if !*playing {
+                audio_device.resume();
+                *playing = true;
+            }
+            
+        } else {
+            // Stop playing sound if timer reaches 0
+            let mut playing = is_playing.lock().unwrap();
+            if *playing {
+                audio_device.pause();
+                *playing = false;
+            }
         }
     }
 
