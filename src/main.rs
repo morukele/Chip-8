@@ -11,7 +11,7 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let mut display = Display::new(&sdl_context, 10);
 
-    let path = Path::new("./rom/TETRIS");
+    let path = Path::new("./rom/chip8-test-rom-with-audio.ch8");
     let rom = std::fs::read(path).expect("Unable to read file");
 
     let mut chip8 = Chip8::new(false); // create new instance of Chip-8
