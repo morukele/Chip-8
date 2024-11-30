@@ -26,6 +26,7 @@ const FONTS: [u8; FONT_SIZE] = [
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
+const PROGRAM_START: usize = 0x200;
 const TIMER_FREQUENCY: u64 = 60; // Timer runs at 60 Hz (FPS)
 const TIMER_INTERVAL: Duration = Duration::from_micros(1_000_000 / TIMER_FREQUENCY); // should be updated 60 times per second to get 60 FPS
 const RUN_FREQUENCY: u64 = 700; // 700 Chip-8 instructions per second
@@ -50,7 +51,7 @@ impl Default for Chip8 {
         Self {
             memory: [0; MEMORY_SIZE],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT], // screen starts black
-            program_counter: 0x200, // offset to the default start address (200 in hex)
+            program_counter: PROGRAM_START as u16, // offset to the default start address (200 in hex)
             index_register: 0,
             stack: [0; STACK_SIZE],
             delay_timer: 0,
@@ -125,7 +126,7 @@ impl Chip8 {
         let x = ((opcode & 0x0F00) >> 8) as u8; // second nibble (register loop up)
         let y = ((opcode & 0x00F0) >> 4) as u8; // third nibble (register look up)
         let n = (opcode & 0x000F) as u8; // fourth nibble (a 4-bit number)
-        let nn = ((opcode & 0x00FF) >> 8) as u8; // second byte (an 8-bit immediate number)
+        let nn = (opcode & 0x00FF) as u8; // second byte (an 8-bit immediate number)
         let nnn = opcode & 0x0FFF; // second, third and fourth nibbles (a 12 bit immediate memory address)
 
         (c, x, y, n, nn, nnn)
@@ -136,7 +137,6 @@ impl Chip8 {
         // Run emulator here.
         // get and decode opcode
         let opcode = self.fetch();
-        println!("Current Opcode: {:x?}", opcode);
         let (c, x, y, n, nn, nnn) = self.decode(&opcode);
 
         // matching the operation category first
@@ -149,7 +149,7 @@ impl Chip8 {
                 match (x, y, n) {
                     (0, 0xE, 0) => {
                         // Clear the screen
-                        println!("Handling opcode: {:#x?}", opcode);
+                        println!("Handling opcode: {:#x?} - clearing display", opcode);
                         self.display = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
                     }
                     _ => panic!("Unimplemented opcode: {:#x?}", opcode),
@@ -157,7 +157,7 @@ impl Chip8 {
             }
             (0x1, _, _, _) => {
                 // operation in case 0x1: Jump to NNN address
-                println!("Handling opcode: {:#x?}", opcode);
+                println!("Handling opcode: {:#x?} - setting program counter to {}", opcode, nnn);
                 self.program_counter = nnn;
             }
             (0x2, _, _, _) => {}
@@ -166,61 +166,63 @@ impl Chip8 {
             (0x5, _, _, _) => {}
             (0x6, _, _, _) => {
                 // 6XNN: Set VX to NN
-                println!("Handling opcode: {:#x?}", opcode);
+                println!("Handling opcode: {:#x?} - setting v{} register to {}", opcode, x, nn);
                 self.registers[x as usize] = nn;
             }
             (0x7, _, _, _) => {
                 // 7XNN: Add value to register VX
-                println!("Handling opcode: {:#x?}", opcode);
+                println!("Handling opcode: {:#x?} - adding {} to v{} register", opcode, nn, x);
                 self.registers[x as usize] = self.registers[x as usize].wrapping_add(nn);
             }
             (0x8, _, _, _) => {}
             (0x9, _, _, _) => {}
             (0xA, _, _, _) => {
                 // ANNN: Set index register I to NNN
-                println!("Handling opcode: {:#x?}", opcode);
-
+                println!("Handling opcode: {:#x?} - setting index register to {}", opcode, nnn);
                 self.index_register = nnn;
             }
             (0xB, _, _, _) => {}
             (0xC, _, _, _) => {}
             (0xD, _, _, _) => {
+                println!(
+                    "Handling opcode: {:#x?}. drawing sprite of {} rows at ({}, {})",
+                    opcode, n, x, y
+                );
                 // DXYN: draw
                 // N = height of the sprite
                 // X = horizontal coordinate in VX
                 // Y = vertical coordinate in VY
-                let vx = self.registers[x as usize] as u16;
-                let vy = self.registers[y as usize] as u16;
-                println!(
-                    "Handling opcode: {:#x?}. sprite of {} rows at ({}, {})",
-                    opcode, n, x, y
-                );
+                let x_start = self.registers[x as usize] % DISPLAY_WIDTH as u8; // X coordinate
+                let y_start = self.registers[y as usize] % DISPLAY_HEIGHT as u8; // Y coordinate
+                self.registers[0xF] = 0; // Set VF to 0
 
-                // keep track if any pixel was flipped
-                let mut flipped = false;
-                // iterate over each row of sprite
                 for row in 0..n {
-                    // Determine with memory address row data is stored
-                    let addr = self.index_register + row as u16;
-                    let pixels = self.memory[addr as usize];
-                    // iterate over each column in the row
-                    for col in 0..8 {
-                        // Use a mask to fetch the current bit. Only flip if a 1
-                        if (pixels & (0b1000_0000 >> col)) != 0 {
-                            // Sprite should wrap around screen, use modulo
-                            let x = (vx + col) as usize % DISPLAY_WIDTH;
-                            let y = (vy + row as u16) as usize % DISPLAY_HEIGHT;
+                    let y = y_start + row;
+                    if y >= DISPLAY_HEIGHT as u8{
+                        break;
+                    }
+                    let sprite = self.memory[self.index_register as usize + row as usize];
 
-                            // set the flipped
-                            flipped |= self.display[x][y];
-                            self.display[x][y] ^= true;
+                    for col in 0..8 {
+                        // Check if the bite for the column is set
+                        let x = x_start + col;
+                        if x >= DISPLAY_WIDTH as u8 {
+                            break;
+                        }
+                        let on = (sprite >> (7 - col)) & 1 == 1;
+                        if on {
+                            if self.display[y as usize][x as usize] {
+                                self.registers[0xF] = 1; // sprite was active
+                            }
+
+                            // Toggle the pixel
+                            // exclusive OR will only produce true if the two values are different
+                            // i.e. true ^ true = false and true ^ false = true
+                            self.display[y as usize][x as usize] ^= true;
                         }
                     }
                 }
 
-
-                // Populate VF register
-                self.registers[0xF] = if flipped { 1 } else { 0 };
             }
             (0xE, _, _, _) => {}
             (0xF, _, _, _) => {}
