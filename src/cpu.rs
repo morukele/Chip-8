@@ -29,8 +29,6 @@ const FONTS: [u8; FONT_SIZE] = [
 const PROGRAM_START: usize = 0x200;
 const TIMER_FREQUENCY: u64 = 60; // Timer runs at 60 Hz (FPS)
 const TIMER_INTERVAL: Duration = Duration::from_micros(1_000_000 / TIMER_FREQUENCY); // should be updated 60 times per second to get 60 FPS
-const RUN_FREQUENCY: u64 = 700; // 700 Chip-8 instructions per second
-const RUN_INTERVAL: Duration = Duration::from_secs(1 / RUN_FREQUENCY); // should cycle 700 instructions per second
 pub struct Chip8 {
     memory: [u8; MEMORY_SIZE], // 4 KB of memory
     // NB: the dimensioning is w*h; width represents the columns, and height represents the rows
@@ -43,7 +41,8 @@ pub struct Chip8 {
     sound_timer: u8,                // 8-bit sound timer
     registers: [u8; NUM_REGISTERS], // 16 8-bit general-purpose registers (V0-VF)
     last_timer_update: Instant,     // parameter to work with timer update
-    last_instruction_execution: Instant, // parameter to control instruction execution
+    stack_pointer: usize,           // parameter for tracking the position on the stack during calls
+    keypad: [bool; 16],             // bool array to hold the key information
 }
 
 impl Default for Chip8 {
@@ -58,7 +57,8 @@ impl Default for Chip8 {
             sound_timer: 0,
             registers: [0; NUM_REGISTERS],
             last_timer_update: Instant::now(), // set counter to instance CPU is created
-            last_instruction_execution: Instant::now(),
+            stack_pointer: 0, // stack starts at zero
+            keypad: [false; 16], // all keys start as unpressed
         }
     }
 }
@@ -122,12 +122,12 @@ impl Chip8 {
         // Opcode decoding
         // the first `nibble` is the category of instruction
         // Mask off using a binary AND, then shift 12 places and truncate to u8.
-        let c = ((opcode & 0xF000) >> 12) as u8; // first nibble (operation category)
-        let x = ((opcode & 0x0F00) >> 8) as u8; // second nibble (register loop up)
-        let y = ((opcode & 0x00F0) >> 4) as u8; // third nibble (register look up)
-        let n = (opcode & 0x000F) as u8; // fourth nibble (a 4-bit number)
-        let nn = (opcode & 0x00FF) as u8; // second byte (an 8-bit immediate number)
-        let nnn = opcode & 0x0FFF; // second, third and fourth nibbles (a 12 bit immediate memory address)
+        let c = ((opcode & 0xF000) >> 12) as u8;     // first nibble (operation category)
+        let x = ((opcode & 0x0F00) >> 8) as u8;      // second nibble (register loop up)
+        let y = ((opcode & 0x00F0) >> 4) as u8;      // third nibble (register look up)
+        let n = (opcode & 0x000F) as u8;             // fourth nibble (a 4-bit number)
+        let nn = (opcode & 0x00FF) as u8;            // second byte (an 8-bit immediate number)
+        let nnn = opcode & 0x0FFF;                  // second, third and fourth nibbles (a 12 bit immediate memory address)
 
         (c, x, y, n, nn, nnn)
     }
@@ -139,6 +139,9 @@ impl Chip8 {
         let opcode = self.fetch();
         let (c, x, y, n, nn, nnn) = self.decode(&opcode);
 
+        let vx = self.registers[x as usize]; // value at x in the register
+        let vy = self.registers[y as usize]; // value at y in the register
+
         // matching the operation category first
         match (c, x, y, n) {
             (0, 0, 0, 0) => {
@@ -148,22 +151,49 @@ impl Chip8 {
                 // operations in case 0x0
                 match (x, y, n) {
                     (0, 0xE, 0) => {
-                        // Clear the screen
+                        // 0x00E0: Clear screen
                         println!("Handling opcode: {:#x?} - clearing display", opcode);
                         self.display = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+                    },
+                    (0, 0xE, 0xE) => {
+                        // 0x00EE: return subroutine
+                        println!("Handling opcode: {:#x?} - return subroutine", opcode);
+                        self.return_subroutine();
                     }
                     _ => panic!("Unimplemented opcode: {:#x?}", opcode),
                 }
             }
             (0x1, _, _, _) => {
-                // operation in case 0x1: Jump to NNN address
+                // 0x1NNN: Jump to NNN address
                 println!("Handling opcode: {:#x?} - setting program counter to {}", opcode, nnn);
                 self.program_counter = nnn;
             }
-            (0x2, _, _, _) => {}
-            (0x3, _, _, _) => {}
-            (0x4, _, _, _) => {}
-            (0x5, _, _, _) => {}
+            (0x2, _, _, _) => {
+                // 0x2NNN: call_subroutine subroutine at nnn
+                println!("Handling opcode: {:#x?} - call subroutine at {:#x?}", opcode, nnn);
+                self.call_subroutine(nnn);
+            }
+            (0x3, _, _, _) => {
+                // 0x3XNN: skip conditionally
+                println!("Handling opcode: {:#x?} - skip one if VX({}) == NN({})", opcode, vx, nn);
+                if vx == nn {
+                    self.program_counter += 2;
+                }
+            }
+            (0x4, _, _, _) => {
+                // 0x4XNN: skip conditionally
+                println!("Handling opcode: {:#x?} - skip one if VX({}) != NN({})", opcode, vx, nn);
+                if vx != nn {
+                    self.program_counter += 2;
+                }
+            }
+            (0x5, _, _, _) => {
+                // 0x5XY0: skip conditionally
+                println!("Handling opcode: {:#x?} - skip one if VX({}) == VY({})", opcode, vx, vy);
+                if vx == vy {
+                    self.program_counter += 2;
+                }
+            }
             (0x6, _, _, _) => {
                 // 6XNN: Set VX to NN
                 println!("Handling opcode: {:#x?} - setting v{} register to {}", opcode, x, nn);
@@ -174,8 +204,23 @@ impl Chip8 {
                 println!("Handling opcode: {:#x?} - adding {} to v{} register", opcode, nn, x);
                 self.registers[x as usize] = self.registers[x as usize].wrapping_add(nn);
             }
-            (0x8, _, _, _) => {}
-            (0x9, _, _, _) => {}
+            (0x8, _, _, _) => {
+                match (x, y, n) {
+                    (_, _, 0) => {
+                        // 0x8XY0: Set
+                        println!("Handling opcode: {:#x?} - setting v{} to v{}", opcode, vx, vy);
+                        self.registers[x as usize] = self.registers[y as usize];
+                    },
+                    _ => panic!("Unimplemented opcode: {:#x?}", opcode),
+                }
+            }
+            (0x9, _, _, _) => {
+                // 0x9XY0: skip conditionally
+                println!("Handling opcode: {:#x?} - skip one if VX({}) =! VY({})", opcode, vx, vy);
+                if vx != vy {
+                    self.program_counter += 2;
+                }
+            }
             (0xA, _, _, _) => {
                 // ANNN: Set index register I to NNN
                 println!("Handling opcode: {:#x?} - setting index register to {}", opcode, nnn);
@@ -192,8 +237,8 @@ impl Chip8 {
                 // N = height of the sprite
                 // X = horizontal coordinate in VX
                 // Y = vertical coordinate in VY
-                let x_start = self.registers[x as usize] % DISPLAY_WIDTH as u8; // X coordinate
-                let y_start = self.registers[y as usize] % DISPLAY_HEIGHT as u8; // Y coordinate
+                let x_start = vx % DISPLAY_WIDTH as u8; // X coordinate
+                let y_start = vy % DISPLAY_HEIGHT as u8; // Y coordinate
                 self.registers[0xF] = 0; // Set VF to 0
 
                 for row in 0..n {
@@ -228,5 +273,39 @@ impl Chip8 {
             (0xF, _, _, _) => {}
             _ => panic!("Unimplemented opcode: {:#x?}", opcode),
         }
+    }
+
+    /// Function to call_subroutine subroutine at address location
+    fn call_subroutine(&mut self, addr: u16) {
+        // Guard to prevent stack overflow
+        if self.stack_pointer >= self.stack.len(){
+            panic!("Stack overflow!")
+        }
+        self.stack[self.stack_pointer] = self.program_counter; // pushing into the current stack location
+        self.stack_pointer += 1;
+        self.program_counter = addr; // set program counter to the nnn address
+    }
+
+    /// Function to return the subroutine and setting the address
+    fn return_subroutine(&mut self) {
+        // Guard to prevent stack underflow
+        if self.stack_pointer == 0 {
+            panic!("Stack underflow!")
+        }
+        self.stack_pointer -= 1;
+        let addr = self.stack[self.stack_pointer];
+        self.program_counter = addr;
+    }
+
+    /// Function adding x and y values while setting the reminder bit
+    fn add_xy(&mut self, x: u8, y: u8) {
+        let vx = self.registers[x as usize];
+        let vy = self.registers[y as usize];
+
+        let (val, overflow) = vx.overflowing_add(vy);
+        self.registers[x as usize] = val;
+
+        // set the overflow register
+        self.registers[0xF] = if overflow { 1 } else { 0 };
     }
 }
