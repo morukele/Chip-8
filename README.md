@@ -30,9 +30,31 @@ Space Invader ROM Gameplay
 </div>
 
 ### Usage
-The rom folder contains the rom files. In the src/main.rs file, edit the file path to the rom you want to run.
+Pull the repo, cd into the directory on your CLI.
+``` bash
+  git pull https://github.com/morukele/Chip-8
+  cd file/path/to/chip-8
+```
 
-The use the cargo run command to run the game.
+To run the CHIP-8 emulator, use the command-line interface. Below are examples of how to use the emulator with various options.
+
+#### Basic command
+```bash
+cargo run -- -r ROM-NAME
+```
+This runs the emulator with default settings and loads the specified CHIP-8 ROM file.
+
+#### Options
+Here are the options available
+- `-r`, `--rom` Name of CHIP-8 ROM file (remember to specify the extension) [default: 1-chip8-logo]
+- `-s` Set the scale of the display [default: 10]
+- `-h`, `--help`       Print help
+- `-V`, `--version`    Print version
+
+```bash
+cargo run -- -r ROM-NAME -s 10
+```
+This runs the emulator with the specified ROM file and the specified scale factor of 1O
 
 ###  AZERTY Keyboard Layout for CHIP-8
 > The CHIP-8 was designed for AZERTY keyboards.
