@@ -80,18 +80,8 @@ The CHIP-8 has a hexadecimal keypad with 16 keys (0x0 to 0xF). This layout is ma
 | `B`        | `c`        |
 | `F`        | `v`        |
 
-####  Notes
-- **Key Mapping**:
-    - CHIP-8 keys are mapped to the AZERTY keyboard as closely as possible.
-    - The keys are chosen to approximate a physical arrangement similar to the CHIP-8 keypad.
-
-- **Adjustments for AZERTY Layout**:
-    - The keys `&`, `é`, `"`, and `'` are used for the top row because they correspond to `1`, `2`, `3`, and `C` in hexadecimal.
-    - Standard letters (`A`, `Z`, `E`, `R`, etc.) are used for the middle rows.
-
-- **Usage**:
-    - This mapping allows you to easily interact with the emulator using an AZERTY keyboard.
-    - Make sure to press the appropriate AZERTY key to correspond to the CHIP-8 keypad.
+- CHIP-8 keys are mapped to the AZERTY keyboard as closely as possible.
+- The keys are chosen to approximate a physical arrangement similar to the CHIP-8 keypad.
 
 ## Resources
 - https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
