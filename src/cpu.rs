@@ -125,7 +125,6 @@ impl Chip8 {
                 audio_device.resume();
                 *playing = true;
             }
-            
         } else {
             // Stop playing sound if timer reaches 0
             let mut playing = is_playing.lock().unwrap();
@@ -176,11 +175,12 @@ impl Chip8 {
         let vy = self.registers[y as usize]; // value at y in the register
 
         // matching the operation category first
-        match (c, x, y, n) {
-            (0, 0, 0, 0) => {}
-            (0x0, _, _, _) => {
+        // TODO: clean up matching, especially where parameters are discarded.
+        match c {
+            0x0 => {
                 // operations in case 0x0
                 match (x, y, n) {
+                    (0, 0, 0) => {}
                     (0, 0xE, 0) => {
                         // 0x00E0: Clear screen
                         println!("Handling opcode: {:#x?} - clearing display", opcode);
@@ -194,7 +194,7 @@ impl Chip8 {
                     _ => panic!("Unimplemented opcode: {:#x?}", opcode),
                 }
             }
-            (0x1, _, _, _) => {
+            0x1 => {
                 // 0x1NNN: Jump to NNN address
                 println!(
                     "Handling opcode: {:#x?} - setting program counter to {}",
@@ -202,7 +202,7 @@ impl Chip8 {
                 );
                 self.program_counter = nnn;
             }
-            (0x2, _, _, _) => {
+            0x2 => {
                 // 0x2NNN: call_subroutine subroutine at nnn
                 println!(
                     "Handling opcode: {:#x?} - call subroutine at {:#x?}",
@@ -210,7 +210,7 @@ impl Chip8 {
                 );
                 self.call_subroutine(nnn);
             }
-            (0x3, _, _, _) => {
+            0x3 => {
                 // 0x3XNN: skip conditionally
                 println!(
                     "Handling opcode: {:#x?} - skip one if VX({}) == NN({})",
@@ -220,7 +220,7 @@ impl Chip8 {
                     self.program_counter += 2;
                 }
             }
-            (0x4, _, _, _) => {
+            0x4 => {
                 // 0x4XNN: skip conditionally
                 println!(
                     "Handling opcode: {:#x?} - skip one if VX({}) != NN({})",
@@ -230,7 +230,7 @@ impl Chip8 {
                     self.program_counter += 2;
                 }
             }
-            (0x5, _, _, _) => {
+            0x5 => {
                 // 0x5XY0: skip conditionally
                 println!(
                     "Handling opcode: {:#x?} - skip one if VX({}) == VY({})",
@@ -240,7 +240,7 @@ impl Chip8 {
                     self.program_counter += 2;
                 }
             }
-            (0x6, _, _, _) => {
+            0x6 => {
                 // 6XNN: Set VX to NN
                 println!(
                     "Handling opcode: {:#x?} - setting v{} register to {}",
@@ -248,7 +248,7 @@ impl Chip8 {
                 );
                 self.registers[x as usize] = nn;
             }
-            (0x7, _, _, _) => {
+            0x7 => {
                 // 7XNN: Add value to register VX
                 println!(
                     "Handling opcode: {:#x?} - adding {} to v{} register",
@@ -256,9 +256,9 @@ impl Chip8 {
                 );
                 self.registers[x as usize] = self.registers[x as usize].wrapping_add(nn);
             }
-            (0x8, _, _, _) => {
-                match (x, y, n) {
-                    (_, _, 0) => {
+            0x8 => {
+                match n {
+                    0x0 => {
                         // 0x8XY0: Set
                         println!(
                             "Handling opcode: {:#x?} - setting v{} to v{}",
@@ -266,37 +266,37 @@ impl Chip8 {
                         );
                         self.registers[x as usize] = self.registers[y as usize];
                     }
-                    (_, _, 1) => {
+                    0x1 => {
                         // 0x8XY1: Binary OR
                         println!("Handling opcode: {:#x?} - setting  v{} to binary OR of v{} and v{} register", opcode, x, x, y);
                         self.registers[x as usize] = vx | vy;
                     }
-                    (_, _, 2) => {
+                    0x2 => {
                         // 0x8XY2: Binary AND
                         println!("Handling opcode: {:#x?} - setting  v{} to binary AND of v{} and v{} register", opcode, x, x, y);
                         self.registers[x as usize] = vx & vy;
                     }
-                    (_, _, 3) => {
+                    0x3 => {
                         // 0x8XY3: Logical XOR
                         println!("Handling opcode: {:#x?} - setting  v{} to logical XOR of v{} and v{} register", opcode, x, x, y);
                         self.registers[x as usize] = vx ^ vy;
                     }
-                    (_, _, 4) => {
+                    0x4 => {
                         // 0x8XY4: Add overflowing
                         println!("Handling opcode: {:#x?} - setting v{} to the sum of v{} and v{} register", opcode, x, x, y);
                         self.add_xy(x, y);
                     }
-                    (_, _, 5) => {
+                    0x5 => {
                         // 0x8XY5: VX - VY
                         println!("Handling opcode: {:#x?} - setting v{} to the diff of v{} and v{} register", opcode, x, x, y);
                         self.subtract_xy(x, y);
                     }
-                    (_, _, 7) => {
+                    0x7 => {
                         // 0x8XY5: VY - VX
                         println!("Handling opcode: {:#x?} - setting v{} to the diff of v{} and v{} register", opcode, x, y, x);
                         self.subtract_yx(x, y);
                     }
-                    (_, _, 6) => {
+                    0x6 => {
                         // 0x8XY6: Shift Right
                         println!("Handling opcode: {:#x?} - shifting v{} >> 1", opcode, x);
                         if !self.modern {
@@ -314,7 +314,7 @@ impl Chip8 {
                         };
                         // set register values
                     }
-                    (_, _, 0xE) => {
+                    0xE => {
                         // 0x8XYE: Shift Left
                         println!("Handling opcode: {:#x?} - shifting v{} << 1", opcode, x);
                         if !self.modern {
@@ -334,7 +334,7 @@ impl Chip8 {
                     _ => panic!("Unimplemented opcode: {:#x?}", opcode),
                 }
             }
-            (0x9, _, _, _) => {
+            0x9 => {
                 // 0x9XY0: skip conditionally
                 println!(
                     "Handling opcode: {:#x?} - skip one if VX({}) =! VY({})",
@@ -344,7 +344,7 @@ impl Chip8 {
                     self.program_counter += 2;
                 }
             }
-            (0xA, _, _, _) => {
+            0xA => {
                 // ANNN: Set index register I to NNN
                 println!(
                     "Handling opcode: {:#x?} - setting index register to {}",
@@ -352,7 +352,7 @@ impl Chip8 {
                 );
                 self.index_register = nnn;
             }
-            (0xB, _, _, _) => {
+            0xB => {
                 // 0xBNNN: Jump with offset
                 // TODO: add support for "qurik" configuration
                 println!(
@@ -361,12 +361,12 @@ impl Chip8 {
                 );
                 self.program_counter = nnn + self.registers[0] as u16;
             }
-            (0xC, _, _, _) => {
+            0xC => {
                 // OxCXNN: Random
                 let rand_num: u8 = rand::rng().random();
                 self.registers[x as usize] = nn & rand_num;
             }
-            (0xD, _, _, _) => {
+            0xD => {
                 // DXYN: draw
                 println!(
                     "Handling opcode: {:#x?}. drawing sprite of {} rows at ({}, {})",
@@ -406,9 +406,9 @@ impl Chip8 {
                     }
                 }
             }
-            (0xE, _, _, _) => {
-                match (x, y, n) {
-                    (_, 0x9, 0xE) => {
+            0xE => {
+                match (y, n) {
+                    (0x9, 0xE) => {
                         // 0xEX9E: Skip if key == vx pressed
                         println!(
                             "Handling opcode: {:#x?} - skipping if key pressed == v{}",
@@ -420,7 +420,7 @@ impl Chip8 {
                             self.program_counter += 2;
                         }
                     }
-                    (_, 0xA, 0x1) => {
+                    (0xA, 0x1) => {
                         // 0xEXA1: Skip if key == vx not pressed
                         println!(
                             "Handling opcode: {:#x?} - skipping if key pressed != v{}",
@@ -434,10 +434,10 @@ impl Chip8 {
                     _ => panic!("Unimplemented opcode: {:#x?}", opcode),
                 }
             }
-            (0xF, _, _, _) => {
+            0xF => {
                 // Timer code
-                match (x, y, n) {
-                    (_, 0x0, 0x7) => {
+                match (y, n) {
+                    (0x0, 0x7) => {
                         // 0xFX07: sets VX to the current value of the delay timer
                         println!(
                             "Handling opcode: {:#x?} - setting v{} to {}",
@@ -445,7 +445,7 @@ impl Chip8 {
                         );
                         self.registers[x as usize] = self.delay_timer;
                     }
-                    (_, 0x1, 0x5) => {
+                    (0x1, 0x5) => {
                         // 0xFX15: set the delay timer to the value in VX
                         println!(
                             "Handling opcode: {:#x?} - setting delayer timer to v{}",
@@ -453,7 +453,7 @@ impl Chip8 {
                         );
                         self.delay_timer = self.registers[x as usize];
                     }
-                    (_, 0x1, 0x8) => {
+                    (0x1, 0x8) => {
                         // 0xFX18: set the sound timer to the value of VX
                         println!(
                             "Handling opcode: {:#x?} - setting sound timer to v{}",
@@ -461,7 +461,7 @@ impl Chip8 {
                         );
                         self.sound_timer = self.registers[x as usize];
                     }
-                    (_, 0x1, 0xE) => {
+                    (0x1, 0xE) => {
                         // 0xFX1E: Add to index
                         println!(
                             "Handling opcode: {:#x?} - adding value of v{} to index register",
@@ -471,7 +471,7 @@ impl Chip8 {
                         self.index_register = val;
                         self.registers[0xF] = if overflow { 1 } else { 0 }; // doing this because of some issues.
                     }
-                    (_, 0x0, 0xA) => {
+                    (0x0, 0xA) => {
                         // 0xFX0A: Get Key
                         println!("Handling opcode: {:#x?} - Getting Key", opcode);
 
@@ -491,7 +491,7 @@ impl Chip8 {
                             self.program_counter -= 2;
                         }
                     }
-                    (_, 0x2, 0x9) => {
+                    (0x2, 0x9) => {
                         // OxFX29: Font Character
                         println!(
                             "Handling opcode: {:#x?} - setting index register to font at v{}",
@@ -501,7 +501,7 @@ impl Chip8 {
                         self.index_register = FONT_START as u16 + (0x5 * character) as u16
                         // multiply by 0x5 because each character is represented by 5 bytes
                     }
-                    (_, 0x3, 0x3) => {
+                    (0x3, 0x3) => {
                         // 0xFX33: Binary-coded decimal conversion
                         // vx = a number from 0 to 255
                         println!(
@@ -516,7 +516,7 @@ impl Chip8 {
                         self.memory[self.index_register as usize + 1] = tens;
                         self.memory[self.index_register as usize + 2] = units;
                     }
-                    (_, 0x5, 0x5) => {
+                    (0x5, 0x5) => {
                         // 0xFX55: store register value from 0..X into memory
                         println!(
                             "Handling opcode: {:#x?} - copying {} values from registers",
@@ -533,7 +533,7 @@ impl Chip8 {
                             );
                         }
                     }
-                    (_, 0x6, 0x5) => {
+                    (0x6, 0x5) => {
                         // 0xF65:
                         // TODO: configure for backwards compatability
                         println!(

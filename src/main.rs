@@ -1,4 +1,6 @@
 use chip_8::{initialize_audio, Chip8, Display};
+use clap::builder::TypedValueParser;
+use clap::{Arg, ArgMatches, Command};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::path::Path;
@@ -8,10 +10,54 @@ const RUN_FREQUENCY: u64 = 700; // 700 Chip-8 instructions per second
 const RUN_INTERVAL: Duration = Duration::from_micros(1_000_000 / RUN_FREQUENCY); // should cycle 700 instructions per second
 
 fn main() {
-    let sdl_context = sdl2::init().unwrap();
-    let mut display = Display::new(&sdl_context, 10);
+    // Getting CLI info
+    let matches = Command::new("CHIP-8 emulator")
+        .version("0.1")
+        .author("Oghenemarho ORUKELE <orukele.dev@gmail.com>")
+        .about("A CHIP-8 emulator written in Rust")
+        .arg(
+            Arg::new("ROM")
+                .short('r')
+                .long("rom")
+                .help("Name of CHIP-8 ROM file (remember to specify the extension)")
+                .required(true)
+                .default_value("1-chip8-logo"),
+        )
+        .arg(
+            Arg::new("scale")
+                .short('s')
+                .help("Set the scale of the display")
+                .required(false)
+                .default_value("10")
+                .default_missing_value("10"),
+        )
+        .get_matches();
 
-    let path = Path::new("./rom/1-chip8-logo.ch8");
+    // Extract arguments
+    let (rom_name, scale) = extract_arguments(matches);
+
+    // Run emulator
+    run_emulator(&rom_name, scale);
+}
+
+fn extract_arguments(matches: ArgMatches) -> (String, u32) {
+    let rom_name = matches
+        .get_one::<String>("ROM")
+        .expect("unable to get ROM name").to_owned();
+    let scale: u32 = matches
+        .get_one::<String>("scale")
+        .expect("unable to get scale factor")
+        .parse()
+        .unwrap_or(10);
+    (rom_name, scale)
+}
+
+fn run_emulator(rom_name: &String, scale: u32) {
+    let sdl_context = sdl2::init().unwrap();
+    let mut display = Display::new(&sdl_context, scale);
+
+    let rom_path = format!("./rom/{}", rom_name);
+    let path = Path::new(&rom_path);
     let rom = std::fs::read(path).expect("Unable to read file");
 
     let mut chip8 = Chip8::new(false); // create new instance of Chip-8
