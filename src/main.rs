@@ -1,5 +1,4 @@
 use chip_8::{initialize_audio, Chip8, Display};
-use clap::builder::TypedValueParser;
 use clap::{Arg, ArgMatches, Command};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -43,7 +42,8 @@ fn main() {
 fn extract_arguments(matches: ArgMatches) -> (String, u32) {
     let rom_name = matches
         .get_one::<String>("ROM")
-        .expect("unable to get ROM name").to_owned();
+        .expect("unable to get ROM name")
+        .to_owned();
     let scale: u32 = matches
         .get_one::<String>("scale")
         .expect("unable to get scale factor")
@@ -99,13 +99,16 @@ fn run_emulator(rom_name: &String, scale: u32) {
         }
 
         let elapsed_time = start.elapsed(); // get the time elapsed
-        if elapsed_time > RUN_INTERVAL {
+        if elapsed_time >= RUN_INTERVAL {
             // check if elapsed time is greater than run interval
             chip8.cycle(); // chip 8 cycle here
             display.draw(&chip8.display); // render the CHIP-8 display
             chip8.update_sound(&audio_device, &is_playing);
             chip8.update_timers(); // update timers
             start = Instant::now(); // update the run timer to now
+        } else {
+            // This is to prevent Busy-Wait loop.
+            std::thread::sleep(RUN_INTERVAL - elapsed_time);
         }
     }
 }
