@@ -13,3 +13,6 @@ spin_sleep = "1.1.1"
 [target.'cfg(target_os="macos")'.dependencies.sdl2]
 features = ["bundled"]
 version = "0.37.0"
+
+[profile.release]
+lto = true
