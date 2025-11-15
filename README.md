@@ -2,7 +2,7 @@
 
 A fully functional Chip-8 interpreter written in Rust, demonstrating deep understanding of emulation, low-level systems programming, and graphics rendering.
 
-> This project is an **interpreter**, not an emulator—a key distinction showing understanding of the differences between these concepts.
+> Technically, it is an interpreter and not an emulator.
 
 ## Key Achievements
 
@@ -14,10 +14,10 @@ A fully functional Chip-8 interpreter written in Rust, demonstrating deep unders
 
 ## Technical Learning Outcomes
 
-Through this project, I deepened my knowledge in:
+Through this project, I learnt about the following subjects:
 
-- **Low-level systems programming**: Understanding CPU instruction cycles, memory layout, and register operations
-- **Rust systems programming**: Leveraging Rust's safety guarantees while working with raw memory and hardware-level abstractions
+- **Low-level systems programming**: Understanding CPU instruction cycles, opcode, memory layout, and register operations
+- **Rust systems programming**: using Rust for systems programming and working with binary operations
 - **Emulation architecture**: Learning how interpreters decode and execute instructions, manage state, and handle timing
 - **SDL2 integration**: Graphics programming and real-time input handling in Rust
 
