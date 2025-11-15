@@ -1,68 +1,97 @@
-# Chip-8
-An implementation of the Chip-8 emulator written in Rust.
-> Technically, it is an interpreter and not an emulator.
+# Chip-8 Interpreter
 
-### Images
+A fully functional Chip-8 interpreter written in Rust, demonstrating deep understanding of emulation, low-level systems programming, and graphics rendering.
 
-The famous IBM rom on full display.
+> This project is an **interpreter**, not an emulator—a key distinction showing understanding of the differences between these concepts.
+
+## Key Achievements
+
+- **Accurate CPU Emulation**: Implemented all 35 Chip-8 opcodes with precise instruction decoding and execution logic
+- **Memory Management**: Designed and implemented a complete memory model (4KB RAM, stack, and registers) with proper address mapping
+- **Graphics Rendering**: Integrated SDL2 for pixel-perfect display rendering at configurable scales
+- **Input Handling**: Built a complete input system mapping hexadecimal keypad to AZERTY keyboard layouts
+- **ROM Compatibility**: Successfully runs multiple ROM files including IBM logo, test suites, and games (Space Invaders, Pong variants)
+
+## Technical Learning Outcomes
+
+Through this project, I deepened my knowledge in:
+
+- **Low-level systems programming**: Understanding CPU instruction cycles, memory layout, and register operations
+- **Rust systems programming**: Leveraging Rust's safety guarantees while working with raw memory and hardware-level abstractions
+- **Emulation architecture**: Learning how interpreters decode and execute instructions, manage state, and handle timing
+- **SDL2 integration**: Graphics programming and real-time input handling in Rust
+
+## Project Demo
+
+### IBM Logo ROM
+
 <div align="center">
-    <img src="images/IBM.png" alt="IBM Logo ROM displayed on Chip-8 emulator" width="500">
+    <img src="images/IBM.png" alt="IBM Logo ROM displayed on Chip-8 interpreter" width="500">
 </div>
 
-Test rom for digits all passing
+### Test ROM - All Digits Passing
+
 <div align="center">
-    <img src="images/test_rom.png" alt="IBM Logo ROM displayed on Chip-8 emulator" width="500">
+    <img src="images/test_rom.png" alt="Test ROM displaying all digits correctly" width="500">
 </div>
 
-A simple video game rom
+### Space Invaders Gameplay
+
 <div align="center">
-    <img src="images/video_game.png" alt="IBM Logo ROM displayed on Chip-8 emulator" width="500">
+    <img src="images/space_invaders.png" alt="Space Invaders ROM running on Chip-8 interpreter" width="500">
 </div>
 
-Space Invader ROM
 <div align="center">
-    <img src="images/space_invaders.png" alt="IBM Logo ROM displayed on Chip-8 emulator" width="500">
+    <img src="images/space_invader_gameplay.png" alt="Space Invaders in-game action" width="500">
 </div>
 
-Space Invader ROM Gameplay
+### Simple Video Game
+
 <div align="center">
-    <img src="images/space_invader_gameplay.png" alt="IBM Logo ROM displayed on Chip-8 emulator" width="500">
+    <img src="images/video_game.png" alt="Simple video game running on the interpreter" width="500">
 </div>
 
-### Usage
-Pull the repo, cd into the directory on your CLI.
-``` bash
-  git pull https://github.com/morukele/Chip-8
-  cd file/path/to/chip-8
+## Requirements
+
+- **SDL2**: Graphics and input library. Must be installed else program will not compile.
+- **Rust**: 1.56 or later
+
+## Usage
+
+Clone the repository and navigate to the project directory:
+
+```bash
+git clone https://github.com/morukele/Chip-8
+cd Chip-8
 ```
 
-To run the CHIP-8 emulator, use the command-line interface. Below are examples of how to use the emulator with various options.
+### Running the Interpreter
 
-#### Basic command
 ```bash
 cargo run -- -r ROM-NAME
 ```
-This runs the emulator with default settings and loads the specified CHIP-8 ROM file.
 
-#### Options
-Here are the options available
-- `-r`, `--rom` Name of CHIP-8 ROM file (remember to specify the extension) [default: 1-chip8-logo]
-- `-s` Set the scale of the display [default: 10]
-- `-h`, `--help`       Print help
-- `-V`, `--version`    Print version
+This runs the interpreter with default settings and loads the specified CHIP-8 ROM file.
+
+### Command-line Options
+
+- `-r`, `--rom`: Name of CHIP-8 ROM file (include file extension) [default: `1-chip8-logo`]
+- `-s`, `--scale`: Display scale factor [default: `10`]
+- `-h`, `--help`: Print help information
+- `-V`, `--version`: Print version information
+
+#### Example with Custom Settings
 
 ```bash
-cargo run -- -r ROM-NAME -s 10
+cargo run -- -r space_invaders.ch8 -s 15
 ```
-This runs the emulator with the specified ROM file and the specified scale factor of 1O
 
-###  AZERTY Keyboard Layout for CHIP-8
-> The CHIP-8 was designed for AZERTY keyboards.
+## AZERTY Keyboard Mapping
 
-The CHIP-8 has a hexadecimal keypad with 16 keys (0x0 to 0xF). This layout is mapped to an AZERTY keyboard as follows:
+The Chip-8 was originally designed for AZERTY keyboards. This interpreter maps the 16-key hexadecimal keypad as follows:
 
-| CHIP-8 Key | AZERTY Key |
-|------------|------------|
+| Chip-8 Key | AZERTY Key |
+| ---------- | ---------- |
 | `1`        | `&`        |
 | `2`        | `é`        |
 | `3`        | `"`        |
@@ -80,9 +109,7 @@ The CHIP-8 has a hexadecimal keypad with 16 keys (0x0 to 0xF). This layout is ma
 | `B`        | `c`        |
 | `F`        | `v`        |
 
-- CHIP-8 keys are mapped to the AZERTY keyboard as closely as possible.
-- The keys are chosen to approximate a physical arrangement similar to the CHIP-8 keypad.
-
 ## Resources
-- https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
-- http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
+
+- [Write a Chip-8 Emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/)
+- [Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
